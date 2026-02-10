@@ -1,15 +1,47 @@
 const tabButtons = document.querySelectorAll('.tab-button');
 const pages = document.querySelectorAll('.page');
 
+const showPage = (targetId, { updateHash = true } = {}) => {
+  const targetPage = document.getElementById(targetId);
+  if (!targetPage) {
+    return;
+  }
+
+  tabButtons.forEach((item) => {
+    item.classList.toggle('active', item.dataset.target === targetId);
+  });
+
+  pages.forEach((page) => {
+    page.classList.toggle('active', page.id === targetId);
+  });
+
+  if (updateHash && window.location.hash !== `#${targetId}`) {
+    window.location.hash = targetId;
+  }
+};
+
 for (const button of tabButtons) {
   button.addEventListener('click', () => {
-    tabButtons.forEach((item) => item.classList.remove('active'));
-    pages.forEach((page) => page.classList.remove('active'));
-
-    button.classList.add('active');
-    document.getElementById(button.dataset.target).classList.add('active');
+    showPage(button.dataset.target, { updateHash: false });
   });
 }
+
+const loadPageFromHash = () => {
+  const hashTarget = window.location.hash.slice(1);
+  const fallbackTarget = tabButtons[0]?.dataset.target;
+
+  if (hashTarget && document.getElementById(hashTarget)) {
+    showPage(hashTarget, { updateHash: false });
+    return;
+  }
+
+  if (fallbackTarget) {
+    showPage(fallbackTarget, { updateHash: false });
+  }
+};
+
+window.addEventListener('hashchange', loadPageFromHash);
+loadPageFromHash();
 
 const display = document.getElementById('calc-display');
 const calcButtons = document.querySelectorAll('[data-calc]');
@@ -112,7 +144,7 @@ resetTimerButton.addEventListener('click', () => {
   paintTime();
 });
 
-const rippleTargets = document.querySelectorAll('button');
+const rippleTargets = document.querySelectorAll('button, .tab-button');
 
 for (const target of rippleTargets) {
   target.addEventListener('click', function (event) {
