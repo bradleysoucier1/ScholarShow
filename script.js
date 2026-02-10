@@ -147,6 +147,7 @@ resetTimerButton.addEventListener('click', () => {
 const drawingCanvas = document.getElementById('draw-canvas');
 const saveCanvasButton = document.getElementById('save-canvas');
 const clearCanvasButton = document.getElementById('clear-canvas');
+const fullscreenCanvasButton = document.getElementById('fullscreen-canvas');
 const canvasStatus = document.getElementById('canvas-status');
 const canvasContext = drawingCanvas.getContext('2d');
 
@@ -248,6 +249,32 @@ clearCanvasButton.addEventListener('click', () => {
   setCanvasStatus('Canvas cleared.');
 });
 
+
+const updateFullscreenButtonLabel = () => {
+  fullscreenCanvasButton.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen';
+};
+
+fullscreenCanvasButton.addEventListener('click', async () => {
+  if (!document.fullscreenEnabled) {
+    setCanvasStatus('Fullscreen is not supported in this browser.');
+    return;
+  }
+
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await drawingCanvas.requestFullscreen();
+    }
+  } catch {
+    setCanvasStatus('Unable to change fullscreen mode.');
+  } finally {
+    updateFullscreenButtonLabel();
+  }
+});
+
+document.addEventListener('fullscreenchange', updateFullscreenButtonLabel);
+
 const rippleTargets = document.querySelectorAll('button, .tab-button');
 
 for (const target of rippleTargets) {
@@ -273,3 +300,4 @@ for (const target of rippleTargets) {
 
 paintTime();
 initializeCanvas();
+updateFullscreenButtonLabel();

@@ -223,6 +223,14 @@ textarea {
   align-items: center;
 }
 
+
+#draw-canvas:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border: none;
+  border-radius: 0;
+}
+
 #canvas-status {
   color: var(--subtle);
   font-size: 0.95rem;
