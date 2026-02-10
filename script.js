@@ -1,103 +1,275 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ScholarShow</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <header class="topbar">
-        <h1>ScholarShow</h1>
-        <p>Your Google-style school toolkit.</p>
-      </header>
+const tabButtons = document.querySelectorAll('.tab-button');
+const pages = document.querySelectorAll('.page');
 
-      <nav class="page-tabs" aria-label="School tools">
-        <a class="tab-button active" data-target="calculator" href="#calculator">Calculator</a>
-        <a class="tab-button" data-target="notes" href="#notes">Notes</a>
-        <a class="tab-button" data-target="timer" href="#timer">Timer</a>
-        <a class="tab-button" data-target="canvas" href="#canvas">Canvas</a>
-      </nav>
+const showPage = (targetId, { updateHash = true } = {}) => {
+  const targetPage = document.getElementById(targetId);
+  if (!targetPage) {
+    return;
+  }
 
-      <main>
-        <section id="calculator" class="page active" aria-labelledby="calculator-heading">
-          <h2 id="calculator-heading">Calculator</h2>
-          <div class="calculator-shell">
-            <input id="calc-display" type="text" readonly value="0" aria-label="Calculator display" />
-            <div class="calc-grid">
-              <button class="action" data-calc="C">C</button>
-              <button class="action" data-calc="±">±</button>
-              <button class="action" data-calc="%">%</button>
-              <button class="operator" data-calc="/">÷</button>
+  tabButtons.forEach((item) => {
+    item.classList.toggle('active', item.dataset.target === targetId);
+  });
 
-              <button data-calc="7">7</button>
-              <button data-calc="8">8</button>
-              <button data-calc="9">9</button>
-              <button class="operator" data-calc="*">×</button>
+  pages.forEach((page) => {
+    page.classList.toggle('active', page.id === targetId);
+  });
 
-              <button data-calc="4">4</button>
-              <button data-calc="5">5</button>
-              <button data-calc="6">6</button>
-              <button class="operator" data-calc="-">−</button>
+  if (updateHash && window.location.hash !== `#${targetId}`) {
+    window.location.hash = targetId;
+  }
+};
 
-              <button data-calc="1">1</button>
-              <button data-calc="2">2</button>
-              <button data-calc="3">3</button>
-              <button class="operator" data-calc="+">+</button>
+for (const button of tabButtons) {
+  button.addEventListener('click', () => {
+    showPage(button.dataset.target, { updateHash: false });
+  });
+}
 
-              <button class="wide" data-calc="0">0</button>
-              <button data-calc=".">.</button>
-              <button class="operator equals" data-calc="=">=</button>
-            </div>
-          </div>
-        </section>
+const loadPageFromHash = () => {
+  const hashTarget = window.location.hash.slice(1);
+  const fallbackTarget = tabButtons[0]?.dataset.target;
 
-        <section id="notes" class="page" aria-labelledby="notes-heading">
-          <h2 id="notes-heading">Notes</h2>
-          <div class="card">
-            <label for="notes-input">Quick class notes</label>
-            <textarea id="notes-input" placeholder="Write your notes here..."></textarea>
-            <div class="notes-actions">
-              <button id="save-notes">Save Notes</button>
-              <span id="notes-status" aria-live="polite"></span>
-            </div>
-          </div>
-        </section>
+  if (hashTarget && document.getElementById(hashTarget)) {
+    showPage(hashTarget, { updateHash: false });
+    return;
+  }
 
-        <section id="timer" class="page" aria-labelledby="timer-heading">
-          <h2 id="timer-heading">Study Timer</h2>
-          <div class="card timer-card">
-            <p class="time" id="timer-display">25:00</p>
-            <div class="timer-controls">
-              <button id="start-timer">Start</button>
-              <button id="pause-timer">Pause</button>
-              <button id="reset-timer">Reset</button>
-            </div>
-          </div>
-        </section>
+  if (fallbackTarget) {
+    showPage(fallbackTarget, { updateHash: false });
+  }
+};
 
-        <section id="canvas" class="page" aria-labelledby="canvas-heading">
-          <h2 id="canvas-heading">Canvas</h2>
-          <div class="card">
-            <p class="canvas-help">Sketch ideas, diagrams, and visual notes.</p>
-            <canvas id="draw-canvas" width="820" height="420" aria-label="Drawing canvas"></canvas>
-            <div class="canvas-actions">
-              <button id="save-canvas">Save Drawing</button>
-              <button id="clear-canvas">Clear</button>
-              <span id="canvas-status" aria-live="polite"></span>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
+window.addEventListener('hashchange', loadPageFromHash);
+loadPageFromHash();
 
-    <script src="script.js"></script>
-  </body>
-</html>
+const display = document.getElementById('calc-display');
+const calcButtons = document.querySelectorAll('[data-calc]');
+
+let currentValue = '0';
+
+const updateDisplay = () => {
+  display.value = currentValue;
+};
+
+for (const button of calcButtons) {
+  button.addEventListener('click', () => {
+    const key = button.dataset.calc;
+
+    if (key === 'C') {
+      currentValue = '0';
+    } else if (key === '±') {
+      currentValue = String(parseFloat(currentValue || '0') * -1);
+    } else if (key === '%') {
+      currentValue = String(parseFloat(currentValue || '0') / 100);
+    } else if (key === '=') {
+      try {
+        currentValue = String(
+          Function(`'use strict'; return (${currentValue.replace(/×/g, '*').replace(/÷/g, '/')})`)()
+        );
+      } catch {
+        currentValue = 'Error';
+      }
+    } else {
+      if (currentValue === '0' && key !== '.') {
+        currentValue = key;
+      } else if (currentValue === 'Error') {
+        currentValue = key;
+      } else {
+        currentValue += key;
+      }
+    }
+
+    updateDisplay();
+  });
+}
+
+const notesInput = document.getElementById('notes-input');
+const saveNotesButton = document.getElementById('save-notes');
+const notesStatus = document.getElementById('notes-status');
+const savedNotes = localStorage.getItem('school-notes');
+
+if (savedNotes) {
+  notesInput.value = savedNotes;
+}
+
+saveNotesButton.addEventListener('click', () => {
+  localStorage.setItem('school-notes', notesInput.value);
+  notesStatus.textContent = 'Saved!';
+  setTimeout(() => {
+    notesStatus.textContent = '';
+  }, 1200);
+});
+
+const timerDisplay = document.getElementById('timer-display');
+const startTimerButton = document.getElementById('start-timer');
+const pauseTimerButton = document.getElementById('pause-timer');
+const resetTimerButton = document.getElementById('reset-timer');
+
+let remainingSeconds = 25 * 60;
+let timerId = null;
+
+const paintTime = () => {
+  const minutes = String(Math.floor(remainingSeconds / 60)).padStart(2, '0');
+  const seconds = String(remainingSeconds % 60).padStart(2, '0');
+  timerDisplay.textContent = `${minutes}:${seconds}`;
+};
+
+startTimerButton.addEventListener('click', () => {
+  if (timerId) {
+    return;
+  }
+
+  timerId = setInterval(() => {
+    if (remainingSeconds <= 0) {
+      clearInterval(timerId);
+      timerId = null;
+      return;
+    }
+
+    remainingSeconds -= 1;
+    paintTime();
+  }, 1000);
+});
+
+pauseTimerButton.addEventListener('click', () => {
+  clearInterval(timerId);
+  timerId = null;
+});
+
+resetTimerButton.addEventListener('click', () => {
+  clearInterval(timerId);
+  timerId = null;
+  remainingSeconds = 25 * 60;
+  paintTime();
+});
+
+const drawingCanvas = document.getElementById('draw-canvas');
+const saveCanvasButton = document.getElementById('save-canvas');
+const clearCanvasButton = document.getElementById('clear-canvas');
+const canvasStatus = document.getElementById('canvas-status');
+const canvasContext = drawingCanvas.getContext('2d');
+
+let isDrawing = false;
+
+const setCanvasStatus = (message) => {
+  canvasStatus.textContent = message;
+  if (!message) {
+    return;
+  }
+
+  setTimeout(() => {
+    canvasStatus.textContent = '';
+  }, 1400);
+};
+
+const paintCanvasBackground = () => {
+  canvasContext.save();
+  canvasContext.setTransform(1, 0, 0, 1, 0, 0);
+  canvasContext.fillStyle = '#ffffff';
+  canvasContext.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+  canvasContext.restore();
+};
+
+const initializeCanvas = () => {
+  canvasContext.lineCap = 'round';
+  canvasContext.lineJoin = 'round';
+  canvasContext.strokeStyle = '#202124';
+  canvasContext.lineWidth = 3;
+
+  paintCanvasBackground();
+
+  const savedDrawing = localStorage.getItem('school-canvas');
+  if (!savedDrawing) {
+    return;
+  }
+
+  const image = new Image();
+  image.addEventListener('load', () => {
+    paintCanvasBackground();
+    canvasContext.drawImage(image, 0, 0, drawingCanvas.width, drawingCanvas.height);
+  });
+  image.src = savedDrawing;
+};
+
+const getCanvasPosition = (event) => {
+  const rect = drawingCanvas.getBoundingClientRect();
+  const scaleX = drawingCanvas.width / rect.width;
+  const scaleY = drawingCanvas.height / rect.height;
+
+  return {
+    x: (event.clientX - rect.left) * scaleX,
+    y: (event.clientY - rect.top) * scaleY,
+  };
+};
+
+const beginDrawing = (event) => {
+  isDrawing = true;
+  const point = getCanvasPosition(event);
+  canvasContext.beginPath();
+  canvasContext.moveTo(point.x, point.y);
+};
+
+const drawLine = (event) => {
+  if (!isDrawing) {
+    return;
+  }
+
+  event.preventDefault();
+  const point = getCanvasPosition(event);
+  canvasContext.lineTo(point.x, point.y);
+  canvasContext.stroke();
+};
+
+const stopDrawing = () => {
+  if (!isDrawing) {
+    return;
+  }
+
+  isDrawing = false;
+  canvasContext.closePath();
+};
+
+drawingCanvas.addEventListener('pointerdown', beginDrawing);
+drawingCanvas.addEventListener('pointermove', drawLine);
+drawingCanvas.addEventListener('pointerup', stopDrawing);
+drawingCanvas.addEventListener('pointerleave', stopDrawing);
+drawingCanvas.addEventListener('pointercancel', stopDrawing);
+
+saveCanvasButton.addEventListener('click', () => {
+  localStorage.setItem('school-canvas', drawingCanvas.toDataURL('image/png'));
+  setCanvasStatus('Drawing saved!');
+});
+
+clearCanvasButton.addEventListener('click', () => {
+  canvasContext.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+  paintCanvasBackground();
+  localStorage.removeItem('school-canvas');
+  setCanvasStatus('Canvas cleared.');
+});
+
+const rippleTargets = document.querySelectorAll('button, .tab-button');
+
+for (const target of rippleTargets) {
+  target.addEventListener('click', function (event) {
+    const circle = document.createElement('span');
+    const diameter = Math.max(this.clientWidth, this.clientHeight);
+    const radius = diameter / 2;
+
+    circle.style.width = `${diameter}px`;
+    circle.style.height = `${diameter}px`;
+    circle.style.left = `${event.clientX - this.getBoundingClientRect().left - radius}px`;
+    circle.style.top = `${event.clientY - this.getBoundingClientRect().top - radius}px`;
+    circle.classList.add('ripple');
+
+    const existingRipple = this.querySelector('.ripple');
+    if (existingRipple) {
+      existingRipple.remove();
+    }
+
+    this.appendChild(circle);
+  });
+}
+
+paintTime();
+initializeCanvas();
