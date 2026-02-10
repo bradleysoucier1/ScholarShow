@@ -197,11 +197,36 @@ textarea {
   color: #188038;
 }
 
-.timer-controls {
+.timer-controls,
+.canvas-actions {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.canvas-help {
+  margin: 0 0 10px;
+  color: var(--subtle);
+}
+
+#draw-canvas {
+  width: 100%;
+  border: 2px solid #dadce0;
+  border-radius: 14px;
+  display: block;
+  background: #fff;
+  touch-action: none;
+}
+
+.canvas-actions {
+  margin-top: 12px;
+  align-items: center;
+}
+
+#canvas-status {
+  color: var(--subtle);
+  font-size: 0.95rem;
 }
 
 .ripple {

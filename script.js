@@ -168,3 +168,4 @@ for (const target of rippleTargets) {
 }
 
 paintTime();
+initializeCanvas();
