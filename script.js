@@ -22,7 +22,7 @@ const showPage = (targetId, { updateHash = true } = {}) => {
 
 for (const button of tabButtons) {
   button.addEventListener('click', () => {
-    showPage(button.dataset.target, { updateHash: false });
+    showPage(button.dataset.target);
   });
 }
 
