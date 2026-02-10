@@ -1,32 +1,15 @@
-const tabLinks = document.querySelectorAll('.tab-link');
+const tabButtons = document.querySelectorAll('.tab-button');
 const pages = document.querySelectorAll('.page');
 
-const showPage = (targetId) => {
-  const targetPage = document.getElementById(targetId) || document.getElementById('calculator');
+for (const button of tabButtons) {
+  button.addEventListener('click', () => {
+    tabButtons.forEach((item) => item.classList.remove('active'));
+    pages.forEach((page) => page.classList.remove('active'));
 
-  pages.forEach((page) => {
-    page.classList.toggle('active', page.id === targetPage.id);
-  });
-
-  tabLinks.forEach((link) => {
-    link.classList.toggle('active', link.dataset.target === targetPage.id);
-  });
-};
-
-for (const link of tabLinks) {
-  link.addEventListener('click', (event) => {
-    event.preventDefault();
-    const targetId = link.dataset.target;
-    history.replaceState(null, '', `#${targetId}`);
-    showPage(targetId);
+    button.classList.add('active');
+    document.getElementById(button.dataset.target).classList.add('active');
   });
 }
-
-window.addEventListener('hashchange', () => {
-  showPage(window.location.hash.slice(1));
-});
-
-showPage(window.location.hash.slice(1));
 
 const display = document.getElementById('calc-display');
 const calcButtons = document.querySelectorAll('[data-calc]');
@@ -129,7 +112,7 @@ resetTimerButton.addEventListener('click', () => {
   paintTime();
 });
 
-const rippleTargets = document.querySelectorAll('button, .tab-link');
+const rippleTargets = document.querySelectorAll('button');
 
 for (const target of rippleTargets) {
   target.addEventListener('click', function (event) {
