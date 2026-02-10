@@ -20,9 +20,10 @@
       </header>
 
       <nav class="page-tabs" aria-label="School tools">
-        <button class="tab-button active" data-target="calculator">Calculator</button>
-        <button class="tab-button" data-target="notes">Notes</button>
-        <button class="tab-button" data-target="timer">Timer</button>
+        <a class="tab-button active" data-target="calculator" href="#calculator">Calculator</a>
+        <a class="tab-button" data-target="notes" href="#notes">Notes</a>
+        <a class="tab-button" data-target="timer" href="#timer">Timer</a>
+        <a class="tab-button" data-target="canvas" href="#canvas">Canvas</a>
       </nav>
 
       <main>
@@ -78,6 +79,19 @@
               <button id="start-timer">Start</button>
               <button id="pause-timer">Pause</button>
               <button id="reset-timer">Reset</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="canvas" class="page" aria-labelledby="canvas-heading">
+          <h2 id="canvas-heading">Canvas</h2>
+          <div class="card">
+            <p class="canvas-help">Sketch ideas, diagrams, and visual notes.</p>
+            <canvas id="draw-canvas" width="820" height="420" aria-label="Drawing canvas"></canvas>
+            <div class="canvas-actions">
+              <button id="save-canvas">Save Drawing</button>
+              <button id="clear-canvas">Clear</button>
+              <span id="canvas-status" aria-live="polite"></span>
             </div>
           </div>
         </section>

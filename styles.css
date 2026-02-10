@@ -53,7 +53,8 @@ body {
   flex-wrap: wrap;
 }
 
-button {
+button,
+.tab-button {
   border: none;
   border-radius: 14px;
   background: #e8f0fe;
@@ -67,13 +68,22 @@ button {
   transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-button:hover {
+button:hover,
+.tab-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(66, 133, 244, 0.25);
 }
 
-button:active {
+button:active,
+.tab-button:active {
   transform: translateY(0);
+}
+
+.tab-button {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tab-button.active {
@@ -186,11 +196,36 @@ textarea {
   color: #188038;
 }
 
-.timer-controls {
+.timer-controls,
+.canvas-actions {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.canvas-help {
+  margin: 0 0 10px;
+  color: var(--subtle);
+}
+
+#draw-canvas {
+  width: 100%;
+  border: 2px solid #dadce0;
+  border-radius: 14px;
+  display: block;
+  background: #fff;
+  touch-action: none;
+}
+
+.canvas-actions {
+  margin-top: 12px;
+  align-items: center;
+}
+
+#canvas-status {
+  color: var(--subtle);
+  font-size: 0.95rem;
 }
 
 .ripple {
