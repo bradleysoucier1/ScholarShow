@@ -144,7 +144,7 @@ resetTimerButton.addEventListener('click', () => {
   paintTime();
 });
 
-const rippleTargets = document.querySelectorAll('button');
+const rippleTargets = document.querySelectorAll('button, .tab-button');
 
 for (const target of rippleTargets) {
   target.addEventListener('click', function (event) {
