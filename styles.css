@@ -240,6 +240,10 @@ textarea {
   color: var(--subtle);
 }
 
+.canvas-stage {
+  width: 100%;
+}
+
 #draw-canvas {
   width: 100%;
   border: 2px solid #dadce0;
@@ -255,9 +259,18 @@ textarea {
 }
 
 
-#draw-canvas:fullscreen {
+#canvas-stage:fullscreen {
   width: 100vw;
   height: 100vh;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#canvas-stage:fullscreen #draw-canvas {
+  width: min(100vw, 1600px);
+  height: min(100vh, 900px);
   border: none;
   border-radius: 0;
 }

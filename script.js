@@ -134,8 +134,11 @@ const setTimerStatus = (message) => {
 const clampToRange = (value, min, max) => Math.min(max, Math.max(min, value));
 
 const applyTimerFromInputs = () => {
-  const minutes = clampToRange(parseInt(timerMinutesInput.value || '0', 10) || 0, 0, 180);
-  const seconds = clampToRange(parseInt(timerSecondsInput.value || '0', 10) || 0, 0, 59);
+  const rawMinutes = Number(timerMinutesInput.value || '0');
+  const rawSeconds = Number(timerSecondsInput.value || '0');
+
+  const minutes = clampToRange(Number.isFinite(rawMinutes) ? Math.floor(rawMinutes) : 0, 0, 180);
+  const seconds = clampToRange(Number.isFinite(rawSeconds) ? Math.floor(rawSeconds) : 0, 0, 3599);
   const totalSeconds = minutes * 60 + seconds;
 
   if (totalSeconds <= 0) {
@@ -143,8 +146,12 @@ const applyTimerFromInputs = () => {
     return;
   }
 
-  timerMinutesInput.value = String(minutes);
-  timerSecondsInput.value = String(seconds);
+  const normalizedMinutes = Math.floor(totalSeconds / 60);
+  const normalizedSeconds = totalSeconds % 60;
+
+  timerMinutesInput.value = String(normalizedMinutes);
+  timerSecondsInput.value = String(normalizedSeconds);
+
   timerDefaultSeconds = totalSeconds;
   remainingSeconds = totalSeconds;
   paintTime();
@@ -152,6 +159,18 @@ const applyTimerFromInputs = () => {
 };
 
 setTimerButton.addEventListener('click', applyTimerFromInputs);
+
+timerMinutesInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    applyTimerFromInputs();
+  }
+});
+
+timerSecondsInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    applyTimerFromInputs();
+  }
+});
 
 startTimerButton.addEventListener('click', () => {
   if (timerId) {
@@ -183,12 +202,22 @@ resetTimerButton.addEventListener('click', () => {
   setTimerStatus('Timer reset.');
 });
 
+const canvasStage = document.getElementById('canvas-stage');
 const drawingCanvas = document.getElementById('draw-canvas');
 const saveCanvasButton = document.getElementById('save-canvas');
 const clearCanvasButton = document.getElementById('clear-canvas');
 const fullscreenCanvasButton = document.getElementById('fullscreen-canvas');
 const canvasStatus = document.getElementById('canvas-status');
 const canvasContext = drawingCanvas.getContext('2d');
+
+const duplicateCanvases = document.querySelectorAll('#draw-canvas');
+if (duplicateCanvases.length > 1) {
+  duplicateCanvases.forEach((canvas, index) => {
+    if (index > 0) {
+      canvas.remove();
+    }
+  });
+}
 
 let isDrawing = false;
 
@@ -303,7 +332,7 @@ fullscreenCanvasButton.addEventListener('click', async () => {
     if (document.fullscreenElement) {
       await document.exitFullscreen();
     } else {
-      await drawingCanvas.requestFullscreen();
+      await canvasStage.requestFullscreen();
     }
   } catch {
     setCanvasStatus('Unable to change fullscreen mode.');
