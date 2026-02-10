@@ -75,10 +75,32 @@
           <h2 id="timer-heading">Study Timer</h2>
           <div class="card timer-card">
             <p class="time" id="timer-display">25:00</p>
+            <div class="timer-setup">
+              <label for="timer-minutes">Minutes</label>
+              <input id="timer-minutes" type="number" min="0" max="180" step="1" value="25" />
+              <label for="timer-seconds">Seconds</label>
+              <input id="timer-seconds" type="number" min="0" max="59" step="1" value="0" />
+              <button id="set-timer">Set Time</button>
+            </div>
             <div class="timer-controls">
               <button id="start-timer">Start</button>
               <button id="pause-timer">Pause</button>
               <button id="reset-timer">Reset</button>
+            </div>
+            <span id="timer-status" aria-live="polite"></span>
+          </div>
+        </section>
+
+        <section id="canvas" class="page" aria-labelledby="canvas-heading">
+          <h2 id="canvas-heading">Canvas</h2>
+          <div class="card">
+            <p class="canvas-help">Sketch ideas, diagrams, and visual notes.</p>
+            <canvas id="draw-canvas" width="820" height="420" aria-label="Drawing canvas"></canvas>
+            <div class="canvas-actions">
+              <button id="save-canvas">Save Drawing</button>
+              <button id="clear-canvas">Clear</button>
+              <button id="fullscreen-canvas">Fullscreen</button>
+              <span id="canvas-status" aria-live="polite"></span>
             </div>
           </div>
         </section>

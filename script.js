@@ -102,11 +102,16 @@ saveNotesButton.addEventListener('click', () => {
 });
 
 const timerDisplay = document.getElementById('timer-display');
+const timerMinutesInput = document.getElementById('timer-minutes');
+const timerSecondsInput = document.getElementById('timer-seconds');
+const setTimerButton = document.getElementById('set-timer');
 const startTimerButton = document.getElementById('start-timer');
 const pauseTimerButton = document.getElementById('pause-timer');
 const resetTimerButton = document.getElementById('reset-timer');
+const timerStatus = document.getElementById('timer-status');
 
-let remainingSeconds = 25 * 60;
+let timerDefaultSeconds = 25 * 60;
+let remainingSeconds = timerDefaultSeconds;
 let timerId = null;
 
 const paintTime = () => {
@@ -114,6 +119,39 @@ const paintTime = () => {
   const seconds = String(remainingSeconds % 60).padStart(2, '0');
   timerDisplay.textContent = `${minutes}:${seconds}`;
 };
+
+const setTimerStatus = (message) => {
+  timerStatus.textContent = message;
+  if (!message) {
+    return;
+  }
+
+  setTimeout(() => {
+    timerStatus.textContent = '';
+  }, 1400);
+};
+
+const clampToRange = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const applyTimerFromInputs = () => {
+  const minutes = clampToRange(parseInt(timerMinutesInput.value || '0', 10) || 0, 0, 180);
+  const seconds = clampToRange(parseInt(timerSecondsInput.value || '0', 10) || 0, 0, 59);
+  const totalSeconds = minutes * 60 + seconds;
+
+  if (totalSeconds <= 0) {
+    setTimerStatus('Choose at least 1 second.');
+    return;
+  }
+
+  timerMinutesInput.value = String(minutes);
+  timerSecondsInput.value = String(seconds);
+  timerDefaultSeconds = totalSeconds;
+  remainingSeconds = totalSeconds;
+  paintTime();
+  setTimerStatus('Timer updated.');
+};
+
+setTimerButton.addEventListener('click', applyTimerFromInputs);
 
 startTimerButton.addEventListener('click', () => {
   if (timerId) {
@@ -140,8 +178,9 @@ pauseTimerButton.addEventListener('click', () => {
 resetTimerButton.addEventListener('click', () => {
   clearInterval(timerId);
   timerId = null;
-  remainingSeconds = 25 * 60;
+  remainingSeconds = timerDefaultSeconds;
   paintTime();
+  setTimerStatus('Timer reset.');
 });
 
 const drawingCanvas = document.getElementById('draw-canvas');
