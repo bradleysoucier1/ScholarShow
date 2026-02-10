@@ -22,7 +22,7 @@ const showPage = (targetId, { updateHash = true } = {}) => {
 
 for (const button of tabButtons) {
   button.addEventListener('click', () => {
-    showPage(button.dataset.target, { updateHash: false });
+    showPage(button.dataset.target);
   });
 }
 
@@ -142,110 +142,6 @@ resetTimerButton.addEventListener('click', () => {
   timerId = null;
   remainingSeconds = 25 * 60;
   paintTime();
-});
-
-const drawingCanvas = document.getElementById('draw-canvas');
-const saveCanvasButton = document.getElementById('save-canvas');
-const clearCanvasButton = document.getElementById('clear-canvas');
-const canvasStatus = document.getElementById('canvas-status');
-const canvasContext = drawingCanvas.getContext('2d');
-
-let isDrawing = false;
-
-const setCanvasStatus = (message) => {
-  canvasStatus.textContent = message;
-  if (!message) {
-    return;
-  }
-
-  setTimeout(() => {
-    canvasStatus.textContent = '';
-  }, 1400);
-};
-
-const paintCanvasBackground = () => {
-  canvasContext.save();
-  canvasContext.setTransform(1, 0, 0, 1, 0, 0);
-  canvasContext.fillStyle = '#ffffff';
-  canvasContext.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-  canvasContext.restore();
-};
-
-const initializeCanvas = () => {
-  canvasContext.lineCap = 'round';
-  canvasContext.lineJoin = 'round';
-  canvasContext.strokeStyle = '#202124';
-  canvasContext.lineWidth = 3;
-
-  paintCanvasBackground();
-
-  const savedDrawing = localStorage.getItem('school-canvas');
-  if (!savedDrawing) {
-    return;
-  }
-
-  const image = new Image();
-  image.addEventListener('load', () => {
-    paintCanvasBackground();
-    canvasContext.drawImage(image, 0, 0, drawingCanvas.width, drawingCanvas.height);
-  });
-  image.src = savedDrawing;
-};
-
-const getCanvasPosition = (event) => {
-  const rect = drawingCanvas.getBoundingClientRect();
-  const scaleX = drawingCanvas.width / rect.width;
-  const scaleY = drawingCanvas.height / rect.height;
-
-  return {
-    x: (event.clientX - rect.left) * scaleX,
-    y: (event.clientY - rect.top) * scaleY,
-  };
-};
-
-const beginDrawing = (event) => {
-  isDrawing = true;
-  const point = getCanvasPosition(event);
-  canvasContext.beginPath();
-  canvasContext.moveTo(point.x, point.y);
-};
-
-const drawLine = (event) => {
-  if (!isDrawing) {
-    return;
-  }
-
-  event.preventDefault();
-  const point = getCanvasPosition(event);
-  canvasContext.lineTo(point.x, point.y);
-  canvasContext.stroke();
-};
-
-const stopDrawing = () => {
-  if (!isDrawing) {
-    return;
-  }
-
-  isDrawing = false;
-  canvasContext.closePath();
-};
-
-drawingCanvas.addEventListener('pointerdown', beginDrawing);
-drawingCanvas.addEventListener('pointermove', drawLine);
-drawingCanvas.addEventListener('pointerup', stopDrawing);
-drawingCanvas.addEventListener('pointerleave', stopDrawing);
-drawingCanvas.addEventListener('pointercancel', stopDrawing);
-
-saveCanvasButton.addEventListener('click', () => {
-  localStorage.setItem('school-canvas', drawingCanvas.toDataURL('image/png'));
-  setCanvasStatus('Drawing saved!');
-});
-
-clearCanvasButton.addEventListener('click', () => {
-  canvasContext.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-  paintCanvasBackground();
-  localStorage.removeItem('school-canvas');
-  setCanvasStatus('Canvas cleared.');
 });
 
 const rippleTargets = document.querySelectorAll('button, .tab-button');
