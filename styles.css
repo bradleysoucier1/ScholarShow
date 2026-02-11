@@ -225,6 +225,16 @@ textarea {
   word-break: break-word;
 }
 
+.shared-canvas-image {
+  width: 100%;
+  border: 2px solid #dadce0;
+  border-radius: 14px;
+  display: block;
+  margin-top: 12px;
+  background: #fff;
+}
+
+
 .shared-note-content {
   margin-top: 0;
   font-size: 1.05rem;

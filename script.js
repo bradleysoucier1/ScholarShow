@@ -12,7 +12,9 @@ const authUser = document.getElementById('auth-user');
 
 let firebaseBridge = null;
 let currentUser = null;
-let currentShareId = null;
+let currentNoteShareId = null;
+let currentCanvasShareId = null;
+let noteShareSyncTimer = null;
 
 const showPage = (targetId, { updateHash = true } = {}) => {
   const targetPage = document.getElementById(targetId);
@@ -33,9 +35,19 @@ const showPage = (targetId, { updateHash = true } = {}) => {
   }
 };
 
-const showSharedContent = (message) => {
+const showSharedContent = ({ message = '', canvasDataUrl = '' }) => {
   const sharedNoteContent = document.getElementById('shared-note-content');
+  const sharedCanvasImage = document.getElementById('shared-canvas-image');
+
   sharedNoteContent.textContent = message;
+
+  if (canvasDataUrl) {
+    sharedCanvasImage.src = canvasDataUrl;
+    sharedCanvasImage.hidden = false;
+  } else {
+    sharedCanvasImage.hidden = true;
+    sharedCanvasImage.removeAttribute('src');
+  }
 };
 
 for (const button of tabButtons) {
@@ -44,32 +56,37 @@ for (const button of tabButtons) {
   });
 }
 
-const loadSharedNoteFromHash = async (hashTarget) => {
-  const shareId = hashTarget.replace(/^shared\//, '');
+const loadSharedItemFromHash = async (hashTarget) => {
+  const shareId = hashTarget.replace(/^(share|shared)\//, '');
   showPage('shared', { updateHash: false });
 
   if (!shareId) {
-    showSharedContent('Invalid share link.');
+    showSharedContent({ message: 'Invalid share link.' });
     return;
   }
 
   if (!firebaseBridge) {
-    showSharedContent('Cloud services are unavailable.');
+    showSharedContent({ message: 'Cloud services are unavailable.' });
     return;
   }
 
-  showSharedContent('Loading shared note...');
+  showSharedContent({ message: 'Loading shared content...' });
 
   try {
-    const sharedNote = await firebaseBridge.getSharedNote(shareId);
-    if (!sharedNote || !sharedNote.note) {
-      showSharedContent('This shared note does not exist or was unshared.');
+    const sharedItem = await firebaseBridge.getShareItem(shareId);
+    if (!sharedItem || !sharedItem.content) {
+      showSharedContent({ message: 'This shared content does not exist or was unshared.' });
       return;
     }
 
-    showSharedContent(sharedNote.note);
+    if (sharedItem.type === 'canvas') {
+      showSharedContent({ message: 'Shared canvas (read-only):', canvasDataUrl: sharedItem.content });
+      return;
+    }
+
+    showSharedContent({ message: sharedItem.content });
   } catch {
-    showSharedContent('Could not load this shared note.');
+    showSharedContent({ message: 'Could not load this shared content.' });
   }
 };
 
@@ -77,8 +94,8 @@ const loadPageFromHash = async () => {
   const hashTarget = window.location.hash.slice(1);
   const fallbackTarget = tabButtons[0]?.dataset.target;
 
-  if (hashTarget.startsWith('shared/')) {
-    await loadSharedNoteFromHash(hashTarget);
+  if (hashTarget.startsWith('share/') || hashTarget.startsWith('shared/')) {
+    await loadSharedItemFromHash(hashTarget);
     return;
   }
 
@@ -142,8 +159,8 @@ const shareNotesButton = document.getElementById('share-notes');
 const unshareNotesButton = document.getElementById('unshare-notes');
 const notesStatus = document.getElementById('notes-status');
 const sharedNoteLink = document.getElementById('shared-note-link');
-const savedNotes = localStorage.getItem('school-notes');
 
+const savedNotes = localStorage.getItem('school-notes');
 if (savedNotes) {
   notesInput.value = savedNotes;
 }
@@ -164,9 +181,12 @@ let timerId = null;
 const canvasStage = document.getElementById('canvas-stage');
 const drawingCanvas = document.getElementById('draw-canvas');
 const saveCanvasButton = document.getElementById('save-canvas');
+const shareCanvasButton = document.getElementById('share-canvas');
+const unshareCanvasButton = document.getElementById('unshare-canvas');
 const clearCanvasButton = document.getElementById('clear-canvas');
 const fullscreenCanvasButton = document.getElementById('fullscreen-canvas');
 const canvasStatus = document.getElementById('canvas-status');
+const sharedCanvasLink = document.getElementById('shared-canvas-link');
 const canvasContext = drawingCanvas.getContext('2d');
 
 const duplicateCanvases = document.querySelectorAll('#draw-canvas');
@@ -194,6 +214,25 @@ const showTransient = (element, message, duration = 1400) => {
 const setTimerStatus = (message) => showTransient(timerStatus, message);
 const setCanvasStatus = (message) => showTransient(canvasStatus, message);
 const setAuthStatus = (message) => showTransient(authStatus, message, 1800);
+
+const setShareLinkText = (element, shareId) => {
+  if (!shareId) {
+    element.textContent = '';
+    return;
+  }
+
+  element.textContent = `${window.location.origin}${window.location.pathname}#share/${shareId}`;
+};
+
+const setNoteShareId = (shareId) => {
+  currentNoteShareId = shareId || null;
+  setShareLinkText(sharedNoteLink, currentNoteShareId);
+};
+
+const setCanvasShareId = (shareId) => {
+  currentCanvasShareId = shareId || null;
+  setShareLinkText(sharedCanvasLink, currentCanvasShareId);
+};
 
 const paintTime = () => {
   const minutes = String(Math.floor(remainingSeconds / 60)).padStart(2, '0');
@@ -309,7 +348,8 @@ const getCanvasDataUrl = () => drawingCanvas.toDataURL('image/png');
 
 const getStateSnapshot = () => ({
   notes: notesInput.value,
-  sharedNoteId: currentShareId,
+  sharedNoteId: currentNoteShareId,
+  sharedCanvasId: currentCanvasShareId,
   timerDefaultSeconds,
   timerRemainingSeconds: remainingSeconds,
   canvasDataUrl: getCanvasDataUrl(),
@@ -326,7 +366,11 @@ const applyCloudState = (cloudState) => {
   }
 
   if (typeof cloudState.sharedNoteId === 'string') {
-    setSharedNoteLink(cloudState.sharedNoteId);
+    setNoteShareId(cloudState.sharedNoteId);
+  }
+
+  if (typeof cloudState.sharedCanvasId === 'string') {
+    setCanvasShareId(cloudState.sharedCanvasId);
   }
 
   if (Number.isFinite(cloudState.timerDefaultSeconds) && cloudState.timerDefaultSeconds > 0) {
@@ -349,17 +393,6 @@ const applyCloudState = (cloudState) => {
   }
 };
 
-const setSharedNoteLink = (shareId) => {
-  currentShareId = shareId || null;
-
-  if (!currentShareId) {
-    sharedNoteLink.textContent = '';
-    return;
-  }
-
-  sharedNoteLink.textContent = `${window.location.origin}${window.location.pathname}#shared/${currentShareId}`;
-};
-
 const syncCloudState = async () => {
   if (!firebaseBridge || !currentUser) {
     return;
@@ -372,6 +405,22 @@ const syncCloudState = async () => {
   }
 };
 
+const syncSharedNoteContent = async () => {
+  if (!firebaseBridge || !currentUser || !currentNoteShareId) {
+    return;
+  }
+
+  try {
+    await firebaseBridge.updateShareItem({
+      shareId: currentNoteShareId,
+      ownerUid: currentUser.uid,
+      content: notesInput.value,
+    });
+  } catch {
+    notesStatus.textContent = 'Could not sync shared note.';
+  }
+};
+
 saveNotesButton.addEventListener('click', () => {
   localStorage.setItem('school-notes', notesInput.value);
   notesStatus.textContent = 'Saved!';
@@ -379,6 +428,21 @@ saveNotesButton.addEventListener('click', () => {
     notesStatus.textContent = '';
   }, 1200);
   void syncCloudState();
+  void syncSharedNoteContent();
+});
+
+notesInput.addEventListener('input', () => {
+  if (noteShareSyncTimer) {
+    clearTimeout(noteShareSyncTimer);
+  }
+
+  if (!currentNoteShareId) {
+    return;
+  }
+
+  noteShareSyncTimer = setTimeout(() => {
+    void syncSharedNoteContent();
+  }, 500);
 });
 
 shareNotesButton.addEventListener('click', async () => {
@@ -394,8 +458,8 @@ shareNotesButton.addEventListener('click', async () => {
   }
 
   try {
-    const shareId = await firebaseBridge.createSharedNote({ ownerUid: currentUser.uid, note });
-    setSharedNoteLink(shareId);
+    const shareId = await firebaseBridge.createShareItem({ ownerUid: currentUser.uid, type: 'note', content: note });
+    setNoteShareId(shareId);
     notesStatus.textContent = 'Note shared!';
     void syncCloudState();
   } catch {
@@ -404,7 +468,7 @@ shareNotesButton.addEventListener('click', async () => {
 });
 
 unshareNotesButton.addEventListener('click', async () => {
-  if (!currentShareId) {
+  if (!currentNoteShareId) {
     notesStatus.textContent = 'No shared note to unshare.';
     return;
   }
@@ -415,8 +479,8 @@ unshareNotesButton.addEventListener('click', async () => {
   }
 
   try {
-    await firebaseBridge.removeSharedNote({ shareId: currentShareId, ownerUid: currentUser.uid });
-    setSharedNoteLink('');
+    await firebaseBridge.removeShareItem({ shareId: currentNoteShareId, ownerUid: currentUser.uid });
+    setNoteShareId('');
     notesStatus.textContent = 'Shared note removed.';
     void syncCloudState();
   } catch {
@@ -480,6 +544,55 @@ saveCanvasButton.addEventListener('click', () => {
   localStorage.setItem('school-canvas', dataUrl);
   setCanvasStatus('Drawing saved!');
   void syncCloudState();
+
+  if (firebaseBridge && currentUser && currentCanvasShareId) {
+    void firebaseBridge.updateShareItem({
+      shareId: currentCanvasShareId,
+      ownerUid: currentUser.uid,
+      content: dataUrl,
+    });
+  }
+});
+
+shareCanvasButton.addEventListener('click', async () => {
+  if (!firebaseBridge || !currentUser) {
+    setCanvasStatus('Sign in to share canvas.');
+    return;
+  }
+
+  try {
+    const shareId = await firebaseBridge.createShareItem({
+      ownerUid: currentUser.uid,
+      type: 'canvas',
+      content: getCanvasDataUrl(),
+    });
+    setCanvasShareId(shareId);
+    setCanvasStatus('Canvas shared!');
+    void syncCloudState();
+  } catch {
+    setCanvasStatus('Could not share canvas.');
+  }
+});
+
+unshareCanvasButton.addEventListener('click', async () => {
+  if (!currentCanvasShareId) {
+    setCanvasStatus('No shared canvas to unshare.');
+    return;
+  }
+
+  if (!firebaseBridge || !currentUser) {
+    setCanvasStatus('Sign in to unshare canvas.');
+    return;
+  }
+
+  try {
+    await firebaseBridge.removeShareItem({ shareId: currentCanvasShareId, ownerUid: currentUser.uid });
+    setCanvasShareId('');
+    setCanvasStatus('Shared canvas removed.');
+    void syncCloudState();
+  } catch {
+    setCanvasStatus('Could not unshare canvas.');
+  }
 });
 
 clearCanvasButton.addEventListener('click', () => {
@@ -514,6 +627,7 @@ document.addEventListener('fullscreenchange', updateFullscreenButtonLabel);
 const initializeAuth = () => {
   firebaseBridge = window.firebaseBridge;
   void loadPageFromHash();
+
   if (!firebaseBridge) {
     authUser.textContent = 'Firebase unavailable. Running local only.';
     authSignOutButton.disabled = true;

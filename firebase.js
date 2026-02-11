@@ -34,8 +34,7 @@ const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
 const getStateDocRef = (uid) => doc(db, 'users', uid, 'app', 'state');
-
-const sharedNotesCollection = collection(db, 'sharedNotes');
+const sharedCollection = collection(db, 'sharedContent');
 
 window.firebaseBridge = {
   onAuthChange: (callback) => onAuthStateChanged(auth, callback),
@@ -58,18 +57,40 @@ window.firebaseBridge = {
     );
   },
 
-  createSharedNote: async ({ ownerUid, note }) => {
+  createShareItem: async ({ ownerUid, type, content }) => {
     const payload = {
       ownerUid,
-      note,
+      type,
+      content,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
-    const sharedDoc = await addDoc(sharedNotesCollection, payload);
+    const sharedDoc = await addDoc(sharedCollection, payload);
     return sharedDoc.id;
   },
-  getSharedNote: async (shareId) => {
-    const sharedDocRef = doc(db, 'sharedNotes', shareId);
+  updateShareItem: async ({ shareId, ownerUid, content }) => {
+    const sharedDocRef = doc(db, 'sharedContent', shareId);
+    const sharedDoc = await getDoc(sharedDocRef);
+    if (!sharedDoc.exists()) {
+      throw new Error('Shared content not found.');
+    }
+
+    const data = sharedDoc.data();
+    if (data.ownerUid && data.ownerUid !== ownerUid) {
+      throw new Error('You can only update content you own.');
+    }
+
+    await setDoc(
+      sharedDocRef,
+      {
+        content,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  },
+  getShareItem: async (shareId) => {
+    const sharedDocRef = doc(db, 'sharedContent', shareId);
     const sharedDoc = await getDoc(sharedDocRef);
     if (!sharedDoc.exists()) {
       return null;
@@ -77,8 +98,8 @@ window.firebaseBridge = {
 
     return { id: sharedDoc.id, ...sharedDoc.data() };
   },
-  removeSharedNote: async ({ shareId, ownerUid }) => {
-    const sharedDocRef = doc(db, 'sharedNotes', shareId);
+  removeShareItem: async ({ shareId, ownerUid }) => {
+    const sharedDocRef = doc(db, 'sharedContent', shareId);
     const sharedDoc = await getDoc(sharedDocRef);
     if (!sharedDoc.exists()) {
       return;
@@ -86,7 +107,7 @@ window.firebaseBridge = {
 
     const data = sharedDoc.data();
     if (data.ownerUid && data.ownerUid !== ownerUid) {
-      throw new Error('You can only unshare notes you own.');
+      throw new Error('You can only unshare content you own.');
     }
 
     await deleteDoc(sharedDocRef);

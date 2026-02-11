@@ -119,17 +119,21 @@
             </div>
             <div class="canvas-actions">
               <button id="save-canvas">Save Drawing</button>
+              <button id="share-canvas">Share Canvas</button>
+              <button id="unshare-canvas">Unshare Canvas</button>
               <button id="clear-canvas">Clear</button>
               <button id="fullscreen-canvas">Fullscreen</button>
               <span id="canvas-status" aria-live="polite"></span>
             </div>
+            <p id="shared-canvas-link" class="shared-note-link" aria-live="polite"></p>
           </div>
         </section>
 
         <section id="shared" class="page" aria-labelledby="shared-heading">
-          <h2 id="shared-heading">Shared Note</h2>
+          <h2 id="shared-heading">Shared Content</h2>
           <div class="card">
-            <p id="shared-note-content" class="shared-note-content">Loading shared note...</p>
+            <p id="shared-note-content" class="shared-note-content">Loading shared content...</p>
+            <img id="shared-canvas-image" class="shared-canvas-image" alt="Shared canvas" hidden />
           </div>
         </section>
 
