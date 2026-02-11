@@ -19,10 +19,27 @@
         <p>Your Google-style school toolkit.</p>
       </header>
 
+
+      <section class="auth-panel card" aria-labelledby="auth-heading">
+        <h2 id="auth-heading">Cloud Sync</h2>
+        <p class="auth-copy">Sign in to sync notes, timer settings, and canvas drawings across devices.</p>
+        <div class="auth-controls">
+          <input id="auth-email" type="email" placeholder="Email" autocomplete="email" />
+          <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" />
+          <button id="auth-signup">Sign Up</button>
+          <button id="auth-signin">Sign In</button>
+          <button id="auth-google">Google Sign-In</button>
+          <button id="auth-signout">Sign Out</button>
+        </div>
+        <p id="auth-user" class="auth-user" aria-live="polite">Not signed in.</p>
+        <p id="auth-status" class="auth-status" aria-live="polite"></p>
+      </section>
+
       <nav class="page-tabs" aria-label="School tools">
-        <button class="tab-button active" data-target="calculator">Calculator</button>
-        <button class="tab-button" data-target="notes">Notes</button>
-        <button class="tab-button" data-target="timer">Timer</button>
+        <a class="tab-button active" data-target="calculator" href="#calculator">Calculator</a>
+        <a class="tab-button" data-target="notes" href="#notes">Notes</a>
+        <a class="tab-button" data-target="timer" href="#timer">Timer</a>
+        <a class="tab-button" data-target="canvas" href="#canvas">Canvas</a>
       </nav>
 
       <main>
@@ -74,16 +91,41 @@
           <h2 id="timer-heading">Study Timer</h2>
           <div class="card timer-card">
             <p class="time" id="timer-display">25:00</p>
+            <div class="timer-setup">
+              <label for="timer-minutes">Minutes</label>
+              <input id="timer-minutes" type="number" min="0" max="180" step="1" value="25" />
+              <label for="timer-seconds">Seconds</label>
+              <input id="timer-seconds" type="number" min="0" max="59" step="1" value="0" />
+              <button id="set-timer">Set Time</button>
+            </div>
             <div class="timer-controls">
               <button id="start-timer">Start</button>
               <button id="pause-timer">Pause</button>
               <button id="reset-timer">Reset</button>
+            </div>
+            <span id="timer-status" aria-live="polite"></span>
+          </div>
+        </section>
+
+        <section id="canvas" class="page" aria-labelledby="canvas-heading">
+          <h2 id="canvas-heading">Canvas</h2>
+          <div class="card">
+            <p class="canvas-help">Sketch ideas, diagrams, and visual notes.</p>
+            <div id="canvas-stage" class="canvas-stage">
+              <canvas id="draw-canvas" width="820" height="420" aria-label="Drawing canvas"></canvas>
+            </div>
+            <div class="canvas-actions">
+              <button id="save-canvas">Save Drawing</button>
+              <button id="clear-canvas">Clear</button>
+              <button id="fullscreen-canvas">Fullscreen</button>
+              <span id="canvas-status" aria-live="polite"></span>
             </div>
           </div>
         </section>
       </main>
     </div>
 
+    <script type="module" src="firebase.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
