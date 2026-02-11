@@ -82,8 +82,11 @@
             <textarea id="notes-input" placeholder="Write your notes here..."></textarea>
             <div class="notes-actions">
               <button id="save-notes">Save Notes</button>
+              <button id="share-notes">Share Note</button>
+              <button id="unshare-notes">Unshare</button>
               <span id="notes-status" aria-live="polite"></span>
             </div>
+            <p id="shared-note-link" class="shared-note-link" aria-live="polite"></p>
           </div>
         </section>
 
@@ -122,6 +125,14 @@
             </div>
           </div>
         </section>
+
+        <section id="shared" class="page" aria-labelledby="shared-heading">
+          <h2 id="shared-heading">Shared Note</h2>
+          <div class="card">
+            <p id="shared-note-content" class="shared-note-content">Loading shared note...</p>
+          </div>
+        </section>
+
       </main>
     </div>
 

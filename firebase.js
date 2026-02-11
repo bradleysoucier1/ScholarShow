@@ -9,7 +9,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js';
+import { getFirestore, collection, addDoc, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCYjQN1yrkGkiF5vapCx9AiM7TdxKKgb-8',
@@ -35,6 +35,8 @@ const googleProvider = new GoogleAuthProvider();
 
 const getStateDocRef = (uid) => doc(db, 'users', uid, 'app', 'state');
 
+const sharedNotesCollection = collection(db, 'sharedNotes');
+
 window.firebaseBridge = {
   onAuthChange: (callback) => onAuthStateChanged(auth, callback),
   signUpWithEmail: (email, password) => createUserWithEmailAndPassword(auth, email, password),
@@ -54,5 +56,39 @@ window.firebaseBridge = {
       },
       { merge: true }
     );
+  },
+
+  createSharedNote: async ({ ownerUid, note }) => {
+    const payload = {
+      ownerUid,
+      note,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+    const sharedDoc = await addDoc(sharedNotesCollection, payload);
+    return sharedDoc.id;
+  },
+  getSharedNote: async (shareId) => {
+    const sharedDocRef = doc(db, 'sharedNotes', shareId);
+    const sharedDoc = await getDoc(sharedDocRef);
+    if (!sharedDoc.exists()) {
+      return null;
+    }
+
+    return { id: sharedDoc.id, ...sharedDoc.data() };
+  },
+  removeSharedNote: async ({ shareId, ownerUid }) => {
+    const sharedDocRef = doc(db, 'sharedNotes', shareId);
+    const sharedDoc = await getDoc(sharedDocRef);
+    if (!sharedDoc.exists()) {
+      return;
+    }
+
+    const data = sharedDoc.data();
+    if (data.ownerUid && data.ownerUid !== ownerUid) {
+      throw new Error('You can only unshare notes you own.');
+    }
+
+    await deleteDoc(sharedDocRef);
   },
 };

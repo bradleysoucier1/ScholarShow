@@ -216,6 +216,21 @@ textarea {
   margin-top: 12px;
 }
 
+
+.shared-note-link,
+.shared-note-content {
+  margin: 12px 0 0;
+  color: var(--subtle);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.shared-note-content {
+  margin-top: 0;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
 #notes-status {
   color: var(--subtle);
   font-size: 0.95rem;

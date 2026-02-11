@@ -12,6 +12,7 @@ const authUser = document.getElementById('auth-user');
 
 let firebaseBridge = null;
 let currentUser = null;
+let currentShareId = null;
 
 const showPage = (targetId, { updateHash = true } = {}) => {
   const targetPage = document.getElementById(targetId);
@@ -32,15 +33,54 @@ const showPage = (targetId, { updateHash = true } = {}) => {
   }
 };
 
+const showSharedContent = (message) => {
+  const sharedNoteContent = document.getElementById('shared-note-content');
+  sharedNoteContent.textContent = message;
+};
+
 for (const button of tabButtons) {
   button.addEventListener('click', () => {
     showPage(button.dataset.target, { updateHash: false });
   });
 }
 
-const loadPageFromHash = () => {
+const loadSharedNoteFromHash = async (hashTarget) => {
+  const shareId = hashTarget.replace(/^shared\//, '');
+  showPage('shared', { updateHash: false });
+
+  if (!shareId) {
+    showSharedContent('Invalid share link.');
+    return;
+  }
+
+  if (!firebaseBridge) {
+    showSharedContent('Cloud services are unavailable.');
+    return;
+  }
+
+  showSharedContent('Loading shared note...');
+
+  try {
+    const sharedNote = await firebaseBridge.getSharedNote(shareId);
+    if (!sharedNote || !sharedNote.note) {
+      showSharedContent('This shared note does not exist or was unshared.');
+      return;
+    }
+
+    showSharedContent(sharedNote.note);
+  } catch {
+    showSharedContent('Could not load this shared note.');
+  }
+};
+
+const loadPageFromHash = async () => {
   const hashTarget = window.location.hash.slice(1);
   const fallbackTarget = tabButtons[0]?.dataset.target;
+
+  if (hashTarget.startsWith('shared/')) {
+    await loadSharedNoteFromHash(hashTarget);
+    return;
+  }
 
   if (hashTarget && document.getElementById(hashTarget)) {
     showPage(hashTarget, { updateHash: false });
@@ -52,8 +92,10 @@ const loadPageFromHash = () => {
   }
 };
 
-window.addEventListener('hashchange', loadPageFromHash);
-loadPageFromHash();
+window.addEventListener('hashchange', () => {
+  void loadPageFromHash();
+});
+void loadPageFromHash();
 
 const display = document.getElementById('calc-display');
 const calcButtons = document.querySelectorAll('[data-calc]');
@@ -96,7 +138,10 @@ for (const button of calcButtons) {
 
 const notesInput = document.getElementById('notes-input');
 const saveNotesButton = document.getElementById('save-notes');
+const shareNotesButton = document.getElementById('share-notes');
+const unshareNotesButton = document.getElementById('unshare-notes');
 const notesStatus = document.getElementById('notes-status');
+const sharedNoteLink = document.getElementById('shared-note-link');
 const savedNotes = localStorage.getItem('school-notes');
 
 if (savedNotes) {
@@ -264,6 +309,7 @@ const getCanvasDataUrl = () => drawingCanvas.toDataURL('image/png');
 
 const getStateSnapshot = () => ({
   notes: notesInput.value,
+  sharedNoteId: currentShareId,
   timerDefaultSeconds,
   timerRemainingSeconds: remainingSeconds,
   canvasDataUrl: getCanvasDataUrl(),
@@ -277,6 +323,10 @@ const applyCloudState = (cloudState) => {
   if (typeof cloudState.notes === 'string') {
     notesInput.value = cloudState.notes;
     localStorage.setItem('school-notes', cloudState.notes);
+  }
+
+  if (typeof cloudState.sharedNoteId === 'string') {
+    setSharedNoteLink(cloudState.sharedNoteId);
   }
 
   if (Number.isFinite(cloudState.timerDefaultSeconds) && cloudState.timerDefaultSeconds > 0) {
@@ -299,6 +349,17 @@ const applyCloudState = (cloudState) => {
   }
 };
 
+const setSharedNoteLink = (shareId) => {
+  currentShareId = shareId || null;
+
+  if (!currentShareId) {
+    sharedNoteLink.textContent = '';
+    return;
+  }
+
+  sharedNoteLink.textContent = `${window.location.origin}${window.location.pathname}#shared/${currentShareId}`;
+};
+
 const syncCloudState = async () => {
   if (!firebaseBridge || !currentUser) {
     return;
@@ -318,6 +379,49 @@ saveNotesButton.addEventListener('click', () => {
     notesStatus.textContent = '';
   }, 1200);
   void syncCloudState();
+});
+
+shareNotesButton.addEventListener('click', async () => {
+  if (!firebaseBridge || !currentUser) {
+    notesStatus.textContent = 'Sign in to share notes.';
+    return;
+  }
+
+  const note = notesInput.value.trim();
+  if (!note) {
+    notesStatus.textContent = 'Write a note before sharing.';
+    return;
+  }
+
+  try {
+    const shareId = await firebaseBridge.createSharedNote({ ownerUid: currentUser.uid, note });
+    setSharedNoteLink(shareId);
+    notesStatus.textContent = 'Note shared!';
+    void syncCloudState();
+  } catch {
+    notesStatus.textContent = 'Could not share note.';
+  }
+});
+
+unshareNotesButton.addEventListener('click', async () => {
+  if (!currentShareId) {
+    notesStatus.textContent = 'No shared note to unshare.';
+    return;
+  }
+
+  if (!firebaseBridge || !currentUser) {
+    notesStatus.textContent = 'Sign in to unshare notes.';
+    return;
+  }
+
+  try {
+    await firebaseBridge.removeSharedNote({ shareId: currentShareId, ownerUid: currentUser.uid });
+    setSharedNoteLink('');
+    notesStatus.textContent = 'Shared note removed.';
+    void syncCloudState();
+  } catch {
+    notesStatus.textContent = 'Could not unshare note.';
+  }
 });
 
 setTimerButton.addEventListener('click', () => applyTimerFromInputs());
@@ -409,6 +513,7 @@ document.addEventListener('fullscreenchange', updateFullscreenButtonLabel);
 
 const initializeAuth = () => {
   firebaseBridge = window.firebaseBridge;
+  void loadPageFromHash();
   if (!firebaseBridge) {
     authUser.textContent = 'Firebase unavailable. Running local only.';
     authSignOutButton.disabled = true;
