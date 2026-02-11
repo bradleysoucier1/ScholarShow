@@ -35,11 +35,29 @@ const showPage = (targetId, { updateHash = true } = {}) => {
   }
 };
 
-const showSharedContent = ({ message = '', canvasDataUrl = '' }) => {
+const showSharedContent = ({ message = '', canvasDataUrl = '', attachments = [] }) => {
   const sharedNoteContent = document.getElementById('shared-note-content');
   const sharedCanvasImage = document.getElementById('shared-canvas-image');
+  const sharedAttachments = document.getElementById('shared-attachments');
 
   sharedNoteContent.textContent = message;
+
+  sharedAttachments.innerHTML = '';
+  if (attachments.length > 0) {
+    sharedAttachments.hidden = false;
+    attachments.forEach((attachment) => {
+      const item = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = attachment.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = attachment.name || 'Attachment';
+      item.appendChild(link);
+      sharedAttachments.appendChild(item);
+    });
+  } else {
+    sharedAttachments.hidden = true;
+  }
 
   if (canvasDataUrl) {
     sharedCanvasImage.src = canvasDataUrl;
@@ -84,7 +102,14 @@ const loadSharedItemFromHash = async (hashTarget) => {
       return;
     }
 
-    showSharedContent({ message: sharedItem.content });
+    const notePayload = typeof sharedItem.content === 'string'
+      ? { text: sharedItem.content, attachments: [] }
+      : sharedItem.content || { text: '', attachments: [] };
+
+    showSharedContent({
+      message: notePayload.text || '',
+      attachments: Array.isArray(notePayload.attachments) ? notePayload.attachments : [],
+    });
   } catch {
     showSharedContent({ message: 'Could not load this shared content.' });
   }
@@ -159,11 +184,64 @@ const shareNotesButton = document.getElementById('share-notes');
 const unshareNotesButton = document.getElementById('unshare-notes');
 const notesStatus = document.getElementById('notes-status');
 const sharedNoteLink = document.getElementById('shared-note-link');
+const noteAttachmentInput = document.getElementById('note-attachment');
+const addAttachmentButton = document.getElementById('add-attachment');
+const notesAttachmentsList = document.getElementById('notes-attachments');
+
+let noteAttachments = [];
 
 const savedNotes = localStorage.getItem('school-notes');
 if (savedNotes) {
   notesInput.value = savedNotes;
 }
+
+
+const savedAttachments = localStorage.getItem('school-note-attachments');
+if (savedAttachments) {
+  try {
+    const parsed = JSON.parse(savedAttachments);
+    if (Array.isArray(parsed)) {
+      noteAttachments = parsed;
+    }
+  } catch {
+    noteAttachments = [];
+  }
+}
+
+const saveAttachmentsLocally = () => {
+  localStorage.setItem('school-note-attachments', JSON.stringify(noteAttachments));
+};
+
+const renderNoteAttachments = () => {
+  notesAttachmentsList.innerHTML = '';
+
+  noteAttachments.forEach((attachment, index) => {
+    const item = document.createElement('li');
+
+    const link = document.createElement('a');
+    link.href = attachment.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = attachment.name || `Attachment ${index + 1}`;
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.textContent = 'Remove';
+    removeButton.addEventListener('click', () => {
+      noteAttachments = noteAttachments.filter((_, attachmentIndex) => attachmentIndex != index);
+      renderNoteAttachments();
+      saveAttachmentsLocally();
+      void syncCloudState();
+      void syncSharedNoteContent();
+    });
+
+    item.appendChild(link);
+    item.appendChild(removeButton);
+    notesAttachmentsList.appendChild(item);
+  });
+};
+
+renderNoteAttachments();
 
 const timerDisplay = document.getElementById('timer-display');
 const timerMinutesInput = document.getElementById('timer-minutes');
@@ -348,6 +426,7 @@ const getCanvasDataUrl = () => drawingCanvas.toDataURL('image/png');
 
 const getStateSnapshot = () => ({
   notes: notesInput.value,
+  noteAttachments,
   sharedNoteId: currentNoteShareId,
   sharedCanvasId: currentCanvasShareId,
   timerDefaultSeconds,
@@ -363,6 +442,12 @@ const applyCloudState = (cloudState) => {
   if (typeof cloudState.notes === 'string') {
     notesInput.value = cloudState.notes;
     localStorage.setItem('school-notes', cloudState.notes);
+  }
+
+  if (Array.isArray(cloudState.noteAttachments)) {
+    noteAttachments = cloudState.noteAttachments;
+    renderNoteAttachments();
+    saveAttachmentsLocally();
   }
 
   if (typeof cloudState.sharedNoteId === 'string') {
@@ -414,7 +499,10 @@ const syncSharedNoteContent = async () => {
     await firebaseBridge.updateShareItem({
       shareId: currentNoteShareId,
       ownerUid: currentUser.uid,
-      content: notesInput.value,
+      content: {
+        text: notesInput.value,
+        attachments: noteAttachments,
+      },
     });
   } catch {
     notesStatus.textContent = 'Could not sync shared note.';
@@ -427,6 +515,7 @@ saveNotesButton.addEventListener('click', () => {
   setTimeout(() => {
     notesStatus.textContent = '';
   }, 1200);
+  saveAttachmentsLocally();
   void syncCloudState();
   void syncSharedNoteContent();
 });
@@ -458,7 +547,14 @@ shareNotesButton.addEventListener('click', async () => {
   }
 
   try {
-    const shareId = await firebaseBridge.createShareItem({ ownerUid: currentUser.uid, type: 'note', content: note });
+    const shareId = await firebaseBridge.createShareItem({
+      ownerUid: currentUser.uid,
+      type: 'note',
+      content: {
+        text: note,
+        attachments: noteAttachments,
+      },
+    });
     setNoteShareId(shareId);
     notesStatus.textContent = 'Note shared!';
     void syncCloudState();
@@ -485,6 +581,32 @@ unshareNotesButton.addEventListener('click', async () => {
     void syncCloudState();
   } catch {
     notesStatus.textContent = 'Could not unshare note.';
+  }
+});
+
+addAttachmentButton.addEventListener('click', async () => {
+  const selectedFile = noteAttachmentInput.files?.[0];
+  if (!selectedFile) {
+    notesStatus.textContent = 'Choose a file to attach.';
+    return;
+  }
+
+  if (!firebaseBridge || !currentUser) {
+    notesStatus.textContent = 'Sign in to upload attachments.';
+    return;
+  }
+
+  try {
+    const uploadedAttachment = await firebaseBridge.uploadNoteAttachment({ uid: currentUser.uid, file: selectedFile });
+    noteAttachments = [...noteAttachments, uploadedAttachment];
+    renderNoteAttachments();
+    saveAttachmentsLocally();
+    noteAttachmentInput.value = '';
+    notesStatus.textContent = 'Attachment added.';
+    void syncCloudState();
+    void syncSharedNoteContent();
+  } catch {
+    notesStatus.textContent = 'Could not upload attachment.';
   }
 });
 

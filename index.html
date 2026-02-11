@@ -80,6 +80,11 @@
           <div class="card">
             <label for="notes-input">Quick class notes</label>
             <textarea id="notes-input" placeholder="Write your notes here..."></textarea>
+            <div class="attachments-controls">
+              <input id="note-attachment" type="file" />
+              <button id="add-attachment">Add Attachment</button>
+            </div>
+            <ul id="notes-attachments" class="notes-attachments"></ul>
             <div class="notes-actions">
               <button id="save-notes">Save Notes</button>
               <button id="share-notes">Share Note</button>
@@ -133,6 +138,7 @@
           <h2 id="shared-heading">Shared Content</h2>
           <div class="card">
             <p id="shared-note-content" class="shared-note-content">Loading shared content...</p>
+            <ul id="shared-attachments" class="notes-attachments" hidden></ul>
             <img id="shared-canvas-image" class="shared-canvas-image" alt="Shared canvas" hidden />
           </div>
         </section>

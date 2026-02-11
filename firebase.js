@@ -10,6 +10,7 @@ import {
   signOut,
 } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js';
 import { getFirestore, collection, addDoc, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCYjQN1yrkGkiF5vapCx9AiM7TdxKKgb-8',
@@ -32,6 +33,7 @@ try {
 const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+const storage = getStorage(app);
 
 const getStateDocRef = (uid) => doc(db, 'users', uid, 'app', 'state');
 const sharedCollection = collection(db, 'sharedContent');
@@ -98,6 +100,16 @@ window.firebaseBridge = {
 
     return { id: sharedDoc.id, ...sharedDoc.data() };
   },
+
+  uploadNoteAttachment: async ({ uid, file }) => {
+    const safeName = file.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const objectPath = `users/${uid}/noteAttachments/${Date.now()}-${safeName}`;
+    const objectRef = ref(storage, objectPath);
+    await uploadBytes(objectRef, file);
+    const url = await getDownloadURL(objectRef);
+    return { name: file.name, url, path: objectPath };
+  },
+
   removeShareItem: async ({ shareId, ownerUid }) => {
     const sharedDocRef = doc(db, 'sharedContent', shareId);
     const sharedDoc = await getDoc(sharedDocRef);
