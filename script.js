@@ -227,10 +227,27 @@ const renderNoteAttachments = () => {
     const removeButton = document.createElement('button');
     removeButton.type = 'button';
     removeButton.textContent = 'Remove';
-    removeButton.addEventListener('click', () => {
-      noteAttachments = noteAttachments.filter((_, attachmentIndex) => attachmentIndex != index);
+    removeButton.addEventListener('click', async () => {
+      const attachmentToRemove = noteAttachments[index];
+
+      if (attachmentToRemove?.path) {
+        if (!firebaseBridge || !currentUser) {
+          notesStatus.textContent = 'Sign in to remove uploaded attachments.';
+          return;
+        }
+
+        try {
+          await firebaseBridge.deleteNoteAttachment({ path: attachmentToRemove.path });
+        } catch {
+          notesStatus.textContent = 'Could not delete attachment from cloud storage.';
+          return;
+        }
+      }
+
+      noteAttachments = noteAttachments.filter((_, attachmentIndex) => attachmentIndex !== index);
       renderNoteAttachments();
       saveAttachmentsLocally();
+      notesStatus.textContent = 'Attachment removed.';
       void syncCloudState();
       void syncSharedNoteContent();
     });

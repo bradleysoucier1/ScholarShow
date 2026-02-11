@@ -10,7 +10,7 @@ import {
   signOut,
 } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js';
 import { getFirestore, collection, addDoc, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-storage.js';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCYjQN1yrkGkiF5vapCx9AiM7TdxKKgb-8',
@@ -108,6 +108,16 @@ window.firebaseBridge = {
     await uploadBytes(objectRef, file);
     const url = await getDownloadURL(objectRef);
     return { name: file.name, url, path: objectPath };
+  },
+
+
+  deleteNoteAttachment: async ({ path }) => {
+    if (!path) {
+      return;
+    }
+
+    const objectRef = ref(storage, path);
+    await deleteObject(objectRef);
   },
 
   removeShareItem: async ({ shareId, ownerUid }) => {
