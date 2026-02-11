@@ -19,6 +19,22 @@
         <p>Your Google-style school toolkit.</p>
       </header>
 
+
+      <section class="auth-panel card" aria-labelledby="auth-heading">
+        <h2 id="auth-heading">Cloud Sync</h2>
+        <p class="auth-copy">Sign in to sync notes, timer settings, and canvas drawings across devices.</p>
+        <div class="auth-controls">
+          <input id="auth-email" type="email" placeholder="Email" autocomplete="email" />
+          <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" />
+          <button id="auth-signup">Sign Up</button>
+          <button id="auth-signin">Sign In</button>
+          <button id="auth-google">Google Sign-In</button>
+          <button id="auth-signout">Sign Out</button>
+        </div>
+        <p id="auth-user" class="auth-user" aria-live="polite">Not signed in.</p>
+        <p id="auth-status" class="auth-status" aria-live="polite"></p>
+      </section>
+
       <nav class="page-tabs" aria-label="School tools">
         <a class="tab-button active" data-target="calculator" href="#calculator">Calculator</a>
         <a class="tab-button" data-target="notes" href="#notes">Notes</a>
@@ -109,6 +125,7 @@
       </main>
     </div>
 
+    <script type="module" src="firebase.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
